@@ -1,0 +1,110 @@
+-- FAST REMOTE SPY (v1.0.1) --
+
+--[[
+	 Changelog:
+	
+		v1.0.1:
+			Script now prints full path of object
+--]]
+
+-- NOTE: FAST REMOTE SPY ONLY SUPPORTS RemoteEvents AT THE MOMENT. I WILL UPDATE IT.
+
+local Settings = {
+	Scan = { -- Places where FRS will look for remotes
+		game:GetService("ReplicatedStorage"),
+		workspace
+	},
+	Watch = { -- What FRS watches
+		RemoteEvent = true,
+		RemoteFunction = false, -- Doesn't work
+		BindableEvent = false, -- Doesn't work
+		BindableFunction = false -- Doesn't work
+	},
+	WatchNewObjects = true -- Watches any new objects on the Watch list that get added
+}
+
+-- Made by OMG_Gaming404 --
+
+function tprint (tbl, indent)
+  if not indent then indent = 0 end
+  local toprint = string.rep(" ", indent) .. "{\r\n"
+  indent = indent + 2 
+  for k, v in pairs(tbl) do
+    toprint = toprint .. string.rep(" ", indent)
+    if (type(k) == "number") then
+      toprint = toprint .. "[" .. k .. "] = "
+    elseif (type(k) == "string") then
+      toprint = toprint  .. k ..  "= "   
+    end
+    if (type(v) == "number") then
+      toprint = toprint .. v .. ",\r\n"
+    elseif (type(v) == "string") then
+      toprint = toprint .. "\"" .. v .. "\",\r\n"
+    elseif (type(v) == "table") then
+      toprint = toprint .. tprint(v, indent + 2) .. ",\r\n"
+    else
+      toprint = toprint .. "\"" .. tostring(v) .. "\",\r\n"
+    end
+  end
+  toprint = toprint .. string.rep(" ", indent-2) .. "}"
+  return toprint
+end
+
+local remotes = {RE = {}, RF = {}, BE = {}, BF = {}}
+
+for i,v in next,Settings.Scan do
+	for ii,vv in next,v:GetDescendants() do
+		if vv:IsA("RemoteEvent") then
+			if Settings.Watch.RemoteEvent then
+				table.insert(remotes.RE, table.getn(remotes.RE) + 1, vv)
+			end
+		end
+	end
+end
+
+function exec(funcType, level, args, fullname)
+	if funcType == 1 then
+		if level == 1 then
+			print("[FRS] Remote Event executed {Ran Server-Side}. Arguments: "..tprint(args))
+		elseif level == 2 then
+			print("[FRS] Remote Event executed {Ran Client-Side}. Path: "..fullname.." Arguments: "..tprint(args))	
+		end
+	elseif funcType == 2 then
+		
+	elseif funcType == 3 then
+		
+	end
+end
+
+if Settings.WatchNewObjects then
+	for i,v in next,Settings.Scan do
+		v.DescendantAdded:connect(function(object)
+			if object:IsA("RemoteEvent") and Settings.Watch.RemoteEvent then
+				object.OnServerEvent:connect(function(player,a,b,c,d,e,f,g,h,ii,j)
+					local ar = {player,a,b,c,d,e,f,g,h,ii,j}
+					exec(1,2,ar,object:GetFullName())
+				end)
+				object.OnClientEvent:connect(function(a,b,c,d,e,f,g,h,ii,j)
+					local ar = {a,b,c,d,e,f,g,h,ii,j}
+					exec(1,1,ar,object:GetFullName())
+				end)
+			elseif object:IsA("RemoteFunction") and Settings.Watch.BindableFunction then
+				
+			elseif object:IsA("BindableEvent") and Settings.Watch.BindableEvent then
+			end
+		end)
+	end
+end
+
+for i,v in next,remotes.RE do
+	v.OnServerEvent:connect(function(a,b,c,d,e,f,g,h,ii,j)
+		local ar = {a,b,c,d,e,f,g,h,ii,j}
+		exec(1,2,ar,v:GetFullName())
+	end)
+	v.OnClientEvent:connect(function(a,b,c,d,e,f,g,h,ii,j)
+		local ar = {a,b,c,d,e,f,g,h,ii,j}
+		exec(1,1,ar,v:GetFullName())
+	end)
+end
+
+print("[FRS] Loaded!")
